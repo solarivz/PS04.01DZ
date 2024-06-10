@@ -5,7 +5,7 @@ from selenium.webdriver.chrome.service import Service
 import time
 
 
-# Функция для ввода запроса и перехода на страницу Википедии
+# Функция для ввода запроса и перехода на страницу результатов поиска Википедии
 def search_wikipedia(query):
     search_box = browser.find_element(By.ID, "searchInput")
     search_box.clear()
@@ -13,6 +13,32 @@ def search_wikipedia(query):
     search_box.send_keys(Keys.RETURN)
     time.sleep(3)
 
+
+# Функция для вывода текста параграфов текущей статьи
+def print_paragraphs():
+    paragraphs = browser.find_elements(By.TAG_NAME, "p")
+    for i, paragraph in enumerate(paragraphs):
+        print(f"Paragraph {i + 1}:\n{paragraph.text}\n")
+        if i >= 4:  # Показываем первые 5 параграфов, потом спрашиваем пользователя
+            break
+
+
+# Функция для получения ссылок на связанные статьи из результатов поиска
+def print_related_links():
+    elements = browser.find_elements(By.CLASS_NAME, "mw-search-result")
+    links = []
+
+    print(f"Found {len(elements)} search results")  # Отладочный вывод
+
+    for i, element in enumerate(elements):
+        a_tag = element.find_element(By.TAG_NAME, "a")
+        link_text = a_tag.text
+        link_href = a_tag.get_attribute("href")
+        if link_href:  # Проверяем, что ссылка не пустая
+            print(f"Link {i + 1}: {link_text} - {link_href}")  # Отладочный вывод
+            links.append((i, link_href))
+
+    return links
 
 
 # Инициализация веб-драйвера Chrome с использованием Service
@@ -43,4 +69,21 @@ while True:
         if action == '1':
             print_paragraphs()
         elif action == '2':
-            hatnotes = print_related_links()
+            links = print_related_links()
+            if links:
+                for index, (i, link_href) in enumerate(links):
+                    print(f"{index + 1}. {link_href}")
+                link_choice = input("Введите номер ссылки для перехода: ")
+                try:
+                    link_index = int(link_choice) - 1
+                    link = links[link_index][1]
+                    browser.get(link)
+                except (ValueError, IndexError):
+                    print("Неправильный формат или номер ссылки. Попробуйте еще раз.")
+            else:
+                print("Связанные статьи не найдены.")
+        elif action == '3':
+            browser.quit()
+            exit()
+        else:
+            print("Неправильный номер действия. Попробуйте еще раз.")
